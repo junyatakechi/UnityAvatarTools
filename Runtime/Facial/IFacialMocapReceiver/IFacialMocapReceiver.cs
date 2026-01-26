@@ -10,7 +10,7 @@ using System.Collections.Generic;
 using UnityEditor;
 #endif
 
-namespace JayT.UnityAvatarTools.Facial
+namespace JayT.VRChatAvatarHelper.Facial
 {
     /// <summary>
     /// UDP Receiver for iFacialMocap.

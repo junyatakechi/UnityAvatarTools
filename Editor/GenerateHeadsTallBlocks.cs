@@ -1,7 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 
-namespace JayT.UnityAvatarTools.Editor
+namespace JayT.VRChatAvatarHelper.Editor
 {
     public class GenerateHeadsTallBlocks : EditorWindow
     {

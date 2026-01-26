@@ -5,7 +5,7 @@ using nadena.dev.modular_avatar.core;
 using VRC.SDK3.Dynamics.PhysBone.Components;
 using VRC.Dynamics;
 
-namespace JayT.UnityAvatarTools.Editor
+namespace JayT.VRChatAvatarHelper.Editor
 {
     public class CopyVrchatAvatarBoneComponent : EditorWindow
     {
