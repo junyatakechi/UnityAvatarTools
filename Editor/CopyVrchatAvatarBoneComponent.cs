@@ -22,7 +22,7 @@ namespace JayT.VRChatAvatarHelper.Editor
         private Dictionary<Transform, Transform> boneMapping = new Dictionary<Transform, Transform>();
         private Dictionary<VRCPhysBoneCollider, VRCPhysBoneCollider> colliderMapping = new Dictionary<VRCPhysBoneCollider, VRCPhysBoneCollider>();
 
-        [MenuItem("Tools/JayT/UnityAvatarTools/Copy Avatar Bone Transform")]
+        [MenuItem("Tools/JayT/VRChatAvatarHelper/Copy Avatar Bone Transform")]
         public static void ShowWindow()
         {
             GetWindow<CopyVrchatAvatarBoneComponent>("Copy Avatar Bone Transform");

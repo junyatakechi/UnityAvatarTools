@@ -10,7 +10,7 @@ namespace JayT.VRChatAvatarHelper.Editor
         private float headSizeCm = 0f; // 頭のサイズ(cm)
         [SerializeField] private Material cubeMaterial; // Cubeに適用するマテリアル
 
-        [MenuItem("Tools/JayT/UnityAvatarTools/Generate Heads Tall Blocks")]
+        [MenuItem("Tools/JayT/VRChatAvatarHelper/Generate Heads Tall Blocks")]
         public static void ShowWindow()
         {
             GetWindow<GenerateHeadsTallBlocks>("Generate Heads Tall Blocks");
