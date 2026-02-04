@@ -16,6 +16,7 @@ namespace JayT.VRChatAvatarHelper.Editor
         [SerializeField] private List<SkinnedMeshRenderer> sourceSkinnedMeshes = new List<SkinnedMeshRenderer>();
         [SerializeField] private List<SkinnedMeshRenderer> targetSkinnedMeshes = new List<SkinnedMeshRenderer>();
         [SerializeField] private int skinnedMeshCount = 0;
+        [SerializeField] private bool copyArmature = true;
         [SerializeField] private bool copyAvatarDescriptor = false;
         [SerializeField] private bool copyPhysBones = false;
         [SerializeField] private bool copyPhysBoneColliders = false;
@@ -45,8 +46,9 @@ namespace JayT.VRChatAvatarHelper.Editor
             targetArmature = (Transform)EditorGUILayout.ObjectField("Target Armature", targetArmature, typeof(Transform), true);
 
             EditorGUILayout.Space();
-            
+
             EditorGUILayout.LabelField("Copy Options", EditorStyles.boldLabel);
+            copyArmature = EditorGUILayout.Toggle("Copy Armature Transform", copyArmature);
             copyAvatarDescriptor = EditorGUILayout.Toggle("Copy Avatar Descriptor", copyAvatarDescriptor);
             copyPhysBoneColliders = EditorGUILayout.Toggle("Copy PhysBone Colliders", copyPhysBoneColliders);
             copyPhysBones = EditorGUILayout.Toggle("Copy PhysBones", copyPhysBones);
@@ -127,7 +129,7 @@ namespace JayT.VRChatAvatarHelper.Editor
             BuildBoneMapping(sourceArmature, targetArmature);
 
             // Copy Armature if specified
-            if (sourceArmature != null && targetArmature != null)
+            if (copyArmature && sourceArmature != null && targetArmature != null) // 条件を修正
             {
                 CopyTransformAndScaleAdjuster(sourceArmature, targetArmature);
             }
@@ -273,8 +275,6 @@ namespace JayT.VRChatAvatarHelper.Editor
             var existingCollider = targetTransform.GetComponent<VRCPhysBoneCollider>();
             VRCPhysBoneCollider target = existingCollider != null ? existingCollider : targetTransform.gameObject.AddComponent<VRCPhysBoneCollider>();
 
-            Undo.RecordObject(target, "Copy PhysBone Collider");
-
             // Copy properties using SerializedObject
             SerializedObject sourceObj = new SerializedObject(source);
             SerializedObject targetObj = new SerializedObject(target);
@@ -321,74 +321,73 @@ namespace JayT.VRChatAvatarHelper.Editor
             }
         }
 
-        private void CopyPhysBone(VRCPhysBone source, Transform targetTransform)
+private void CopyPhysBone(VRCPhysBone source, Transform targetTransform)
+{
+    // Check if PhysBone already exists
+    var existingPhysBone = targetTransform.GetComponent<VRCPhysBone>();
+    VRCPhysBone target = existingPhysBone != null ? existingPhysBone : targetTransform.gameObject.AddComponent<VRCPhysBone>();
+
+    // Undo.RecordObject(target, "Copy PhysBone"); // この行を削除
+
+    SerializedObject sourceObj = new SerializedObject(source);
+    SerializedObject targetObj = new SerializedObject(target);
+
+    // Copy all serialized properties except references that need remapping
+    SerializedProperty sourceProp = sourceObj.GetIterator();
+    sourceProp.Next(true);
+
+    do
+    {
+        string propName = sourceProp.name;
+
+        // Skip properties that need special handling
+        if (propName == "m_Script" || propName == "rootTransform" || propName == "ignoreTransforms" || propName == "colliders")
+            continue;
+
+        CopySerializedProperty(sourceObj, targetObj, propName);
+    }
+    while (sourceProp.Next(false));
+
+    targetObj.ApplyModifiedProperties();
+
+    // Remap rootTransform
+    if (source.rootTransform != null && boneMapping.TryGetValue(source.rootTransform, out Transform mappedRoot))
+    {
+        target.rootTransform = mappedRoot;
+    }
+    else
+    {
+        target.rootTransform = null;
+    }
+
+    // Remap ignoreTransforms
+    target.ignoreTransforms = new List<Transform>();
+    if (source.ignoreTransforms != null)
+    {
+        foreach (var ignoreTransform in source.ignoreTransforms)
         {
-            // Check if PhysBone already exists
-            var existingPhysBone = targetTransform.GetComponent<VRCPhysBone>();
-            VRCPhysBone target = existingPhysBone != null ? existingPhysBone : targetTransform.gameObject.AddComponent<VRCPhysBone>();
-
-            Undo.RecordObject(target, "Copy PhysBone");
-
-            SerializedObject sourceObj = new SerializedObject(source);
-            SerializedObject targetObj = new SerializedObject(target);
-
-            // Copy all serialized properties except references that need remapping
-            SerializedProperty sourceProp = sourceObj.GetIterator();
-            sourceProp.Next(true);
-
-            do
+            if (ignoreTransform != null && boneMapping.TryGetValue(ignoreTransform, out Transform mappedIgnore))
             {
-                string propName = sourceProp.name;
-
-                // Skip properties that need special handling
-                if (propName == "m_Script" || propName == "rootTransform" || propName == "ignoreTransforms" || propName == "colliders")
-                    continue;
-
-                CopySerializedProperty(sourceObj, targetObj, propName);
+                target.ignoreTransforms.Add(mappedIgnore);
             }
-            while (sourceProp.Next(false));
-
-            targetObj.ApplyModifiedProperties();
-
-            // Remap rootTransform
-            if (source.rootTransform != null && boneMapping.TryGetValue(source.rootTransform, out Transform mappedRoot))
-            {
-                target.rootTransform = mappedRoot;
-            }
-            else
-            {
-                target.rootTransform = null;
-            }
-
-            // Remap ignoreTransforms
-            target.ignoreTransforms = new List<Transform>();
-            if (source.ignoreTransforms != null)
-            {
-                foreach (var ignoreTransform in source.ignoreTransforms)
-                {
-                    if (ignoreTransform != null && boneMapping.TryGetValue(ignoreTransform, out Transform mappedIgnore))
-                    {
-                        target.ignoreTransforms.Add(mappedIgnore);
-                    }
-                }
-            }
-
-            // Remap colliders
-            target.colliders = new List<VRCPhysBoneColliderBase>();
-            if (source.colliders != null)
-            {
-                foreach (var sourceCollider in source.colliders)
-                {
-                    if (sourceCollider is VRCPhysBoneCollider collider && colliderMapping.TryGetValue(collider, out VRCPhysBoneCollider mappedCollider))
-                    {
-                        target.colliders.Add(mappedCollider);
-                    }
-                }
-            }
-
-            EditorUtility.SetDirty(target);
         }
+    }
 
+    // Remap colliders
+    target.colliders = new List<VRCPhysBoneColliderBase>();
+    if (source.colliders != null)
+    {
+        foreach (var sourceCollider in source.colliders)
+        {
+            if (sourceCollider is VRCPhysBoneCollider collider && colliderMapping.TryGetValue(collider, out VRCPhysBoneCollider mappedCollider))
+            {
+                target.colliders.Add(mappedCollider);
+            }
+        }
+    }
+
+    EditorUtility.SetDirty(target);
+}
         private void CopySerializedProperty(SerializedObject source, SerializedObject target, string propertyName)
         {
             SerializedProperty sourceProp = source.FindProperty(propertyName);
